@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Latihan JFT Hyougen</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .container {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 760px;
+    width: 100%;
+    padding: 30px;
+    position: relative;
+  }
+  h1 { font-size: 1.4em; color: #333; margin-bottom: 6px; text-align: center; }
+  .subtitle { text-align: center; color: #888; font-size: 0.85em; margin-bottom: 20px; }
+
+  /* ===== MENU ===== */
+  .menu { text-align: center; }
+  .menu .btn { margin-top: 12px; }
+  .menu-desc { color: #666; font-size: 0.95em; margin-bottom: 8px; line-height: 1.6; }
+  .badge-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
+  .badge {
+    background: #f0f2ff; color: #667eea; padding: 6px 14px; border-radius: 20px;
+    font-size: 0.85em; font-weight: 600;
+  }
+
+  /* ===== QUIZ ===== */
+  .progress-bar {
+    height: 8px; background: #eee; border-radius: 10px; overflow: hidden; margin-bottom: 20px;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, #667eea, #764ba2);
+    width: 0%; transition: width 0.3s ease;
+  }
+  .info-row {
+    display: flex; justify-content: space-between; font-size: 0.85em;
+    color: #666; margin-bottom: 12px; font-weight: 600;
+  }
+  .timer-box {
+    background: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 20px;
+    font-weight: 700; font-size: 0.85em; transition: all 0.2s;
+  }
+  .timer-box.warning { background: #f8d7da; color: #721c24; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+
+  /* Passage (bacaan dokkai) */
+  .passage {
+    background: #f8f9ff; border-left: 4px solid #667eea;
+    padding: 14px 16px; border-radius: 10px;
+    color: #333; line-height: 1.85; font-size: 0.98em;
+    margin-bottom: 16px; white-space: pre-wrap; display: none;
+  }
+
+  .question {
+    font-size: 1.15em; color: #222; margin-bottom: 20px; line-height: 1.6;
+    min-height: 60px; white-space: pre-wrap;
+  }
+  .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .option {
+    padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 12px;
+    cursor: pointer; transition: all 0.2s; font-size: 1em; color: #333;
+    background: #fafafa; text-align: left; display: flex; align-items: center; gap: 10px;
+  }
+  .option:hover:not(.disabled) { border-color: #667eea; background: #f0f2ff; transform: translateX(4px); }
+  .option .label { font-weight: 700; color: #667eea; min-width: 22px; }
+  .option.correct { background: #d4edda; border-color: #28a745; color: #155724; }
+  .option.correct .label { color: #28a745; }
+  .option.wrong { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+  .option.wrong .label { color: #dc3545; }
+  .option.disabled { cursor: not-allowed; }
+  .option.selected { border-color: #667eea; background: #e8ecff; }
+
+  .feedback {
+    padding: 12px; border-radius: 10px; font-weight: 600; text-align: center;
+    margin-bottom: 15px; display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.correct { background: #d4edda; color: #155724; }
+  .feedback.wrong { background: #f8d7da; color: #721c24; }
+
+  .btn {
+    width: 100%; padding: 14px; border: none; border-radius: 12px;
+    font-size: 1em; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    background: linear-gradient(90deg, #667eea, #764ba2); color: #fff;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,0.4); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn.secondary { background: #eee; color: #333; }
+  .btn.secondary:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+  .btn-row { display: flex; gap: 10px; }
+
+  /* ===== RESULT ===== */
+  .result-screen { text-align: center; display: none; }
+  .result-screen.show { display: block; }
+  .score-big {
+    font-size: 3.5em; font-weight: 800;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin: 10px 0;
+  }
+  .result-detail { color: #666; margin-bottom: 20px; font-size: 1.05em; line-height: 1.6; }
+  .review-list { text-align: left; margin-top: 20px; max-height: 320px; overflow-y: auto; }
+  .review-item { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9em; }
+  .review-item.correct { border-left: 4px solid #28a745; }
+  .review-item.wrong { border-left: 4px solid #dc3545; }
+  .review-passage {
+    background: #f8f9ff; border-left: 3px solid #667eea;
+    padding: 8px 10px; border-radius: 6px; margin-bottom: 6px;
+    font-size: 0.92em; color: #444; white-space: pre-wrap; line-height: 1.7;
+  }
+  .review-q { font-weight: 600; margin-bottom: 4px; color: #333; white-space: pre-wrap; }
+  .review-a { color: #666; font-size: 0.9em; }
+  .review-a .ok { color: #28a745; font-weight: 700; }
+  .review-a .no { color: #dc3545; font-weight: 700; }
+
+  /* ===== LEADERBOARD ===== */
+  .lb-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.92em; }
+  .lb-table th, .lb-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; }
+  .lb-table th { background: #f0f2ff; color: #667eea; font-weight: 700; }
+  .lb-table tr:nth-child(1) td { font-weight: 700; color: #b8860b; }
+  .lb-empty { color: #999; text-align: center; padding: 30px; font-style: italic; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 500px) {
+    .container { padding: 20px; }
+    h1 { font-size: 1.2em; }
+    .question { font-size: 1.02em; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== MENU SCREEN ===== -->
+  <div id="menu-screen" class="menu">
+    <h1>🇯🇵 Latihan JFT Hyougen</h1>
+    <p class="subtitle" id="menu-subtitle">Pilihan Ganda • Referensi IRODORI</p>
+    <div class="badge-row">
+      <span class="badge" id="timer-badge">⏱️ Min 30s (adaptif)</span>
+      <span class="badge">🔀 Soal Acak</span>
+      <span class="badge">🏆 Leaderboard</span>
+      <span class="badge">🔊 Suara</span>
+    </div>
+    <p class="menu-desc">Pilih mode di bawah ini:</p>
+    <button class="btn" id="start-normal-btn">🎯 Mode Latihan (Feedback Langsung)</button>
+    <button class="btn secondary" id="start-exam-btn">📊 Mode Ujian (Hasil di Akhir)</button>
+    <button class="btn secondary" id="show-lb-btn">🏆 Lihat Leaderboard</button>
+  </div>
+
+  <!-- ===== QUIZ SCREEN ===== -->
+  <div id="quiz-screen" class="hidden">
+    <div class="info-row">
+      <span id="progress-text">Soal 1 / 0</span>
+      <span id="timer-display" class="timer-box">⏱️ 30s</span>
+      <span id="score-text">Skor: 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="passage" id="passage-text"></div>
+    <div class="question" id="question-text"></div>
+    <div class="options" id="options-container"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn" id="next-btn" disabled>Lanjut →</button>
+  </div>
+
+  <!-- ===== RESULT SCREEN ===== -->
+  <div id="result-screen" class="result-screen">
+    <h1>🎉 Selesai!</h1>
+    <div class="score-big" id="final-score">0</div>
+    <p class="result-detail" id="final-detail"></p>
+    <div class="review-list" id="review-list"></div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn" id="restart-btn">🔄 Ulangi Quiz</button>
+      <button class="btn secondary" id="back-menu-btn">🏠 Menu</button>
+    </div>
+  </div>
+
+  <!-- ===== LEADERBOARD SCREEN ===== -->
+  <div id="lb-screen" class="hidden">
+    <h1>🏆 Leaderboard</h1>
+    <p class="subtitle">Top 10 skor terbaik (tersimpan di browser ini)</p>
+    <div id="lb-content"></div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn secondary" id="clear-lb-btn">🗑️ Hapus Semua</button>
+      <button class="btn" id="lb-back-btn">🏠 Menu</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// ====== KONFIGURASI — EDIT DI SINI ======
+// ============================================================
+const CONFIG = {
+  minTimePerQuestion: 30,   // detik MINIMUM per soal
+  maxTimePerQuestion: 180,  // batas maksimum detik per soal (safety)
+  timePerQuestion: 0,       // 0 = adaptif. >0 = paksa fixed untuk semua soal
+  shuffleQuestions: true,
+  shuffleOptions: false,
+  soundEnabled: true,
+  leaderboardKey: 'jft_hyougen_leaderboard_v1',
+  maxLeaderboard: 10,
+  examModeDefault: false
+};
+
+// ============================================================
+// ====== DAFTAR SOAL — EDIT DI SINI ======
+// Format yang didukung (otomatis dideteksi):
+//
+// FORMAT A (rekomendasi, seperti data kamu sekarang):
+//   { id: 1, category: "dokkai",
+//     passage: "bacaan panjang...",          // OPSIONAL (untuk dokkai)
+//     question: "pertanyaan...",
+//     options: { A: "...", B: "...", C: "...", D: "..." },
+//     answer: "C" }
+//
+// FORMAT B (lama/simple):
+//   { q: "pertanyaan", o: ["A","B","C","D"], a: 2 }
+//
+// OPSIONAL di kedua format:
+//   t: 45   → paksa waktu 45 detik untuk soal ini
+// ============================================================
+const QUESTIONS_RAW = [
+  [
+    { "id": 1, "category": "dokkai", "passage": "わたしは先週、友だちと京都へ行きました。京都は人が多くて、少し疲れましたが、古いお寺を見ることができて、とてもよかったです。写真もたくさん撮りました。また行きたいです。", "question": "次の文を読んで、内容と合っているものを選んでください。", "options": { "A": "京都は人が少なくて、静かでした。", "B": "古いお寺を見ることができませんでした。", "C": "写真をたくさん撮りました。", "D": "京都へは行きたくないです。" }, "answer": "C" },
+    { "id": 2, "category": "dokkai", "passage": "田中さん\nお元気ですか。来週の土曜日に、うちでパーティーをします。友だちも一緒に来てもいいです。食べ物は私が準備しますから、何も持ってこなくていいです。でも、飲み物があったら、持ってきてください。\nマリア", "question": "次のメールを読んで、正しいものを選んでください。", "options": { "A": "パーティーは田中さんのうちでします。", "B": "食べ物を持って行かなければなりません。", "C": "友だちを連れて行ってもいいです。", "D": "飲み物は準備しなくてもいいです。" }, "answer": "C" },
+    { "id": 3, "category": "dokkai", "passage": "図書館の利用案内\n・本を借りるときは、カウンターで借りてください。\n・一度に5冊まで、2週間借りることができます。\n・返すのが遅れたら、1日100円払ってください。\n・館内では、食べ物を食べないでください。飲み物はいいです。", "question": "次の案内を読んで、正しいものを選んでください。", "options": { "A": "本は一度に10冊借りられます。", "B": "本を返すのが遅れても、お金は払わなくていいです。", "C": "図書館の中でお弁当を食べてもいいです。", "D": "飲み物は図書館の中で飲んでもいいです。" }, "answer": "D" },
+    { "id": 4, "category": "dokkai", "passage": "私は毎朝、7時に起きます。まずシャワーを浴びて、朝ごはんを食べます。それから、8時半に家を出て、電車で会社へ行きます。会社まで1時間ぐらいかかります。電車の中で、よく本を読みます。", "question": "次の文を読んで、内容と合っているものを選んでください。", "options": { "A": "朝ごはんを食べてから、シャワーを浴びます。", "B": "家から会社まで30分ぐらいです。", "C": "電車の中で本を読むことが多いです。", "D": "毎朝6時に起きます。" }, "answer": "C" },
+    { "id": 5, "category": "dokkai", "passage": "お知らせ\n来月の1日から、この駐車場は使えません。工事をしますから、車を止めないでください。駐車場を使いたい人は、駅の近くの有料駐車場を使ってください。ご迷惑をおかけしますが、よろしくお願いします。", "question": "次の掲示を読んで、正しいものを選んでください。", "options": { "A": "来月から工事が始まります。", "B": "来月からも、この駐車場に車を止めてもいいです。", "C": "駅の近くの駐車場は無料です。", "D": "工事は今月終わります。" }, "answer": "A" },
+    { "id": 6, "category": "dokkai", "passage": "私は日本のアニメが好きで、日本語を勉強し始めました。最初は、言葉が全然わかりませんでした。でも、毎日アニメを見たり、音楽を聞いたりしているうちに、少しずつ聞こえるようになりました。今は、字幕なしでアニメを見ることが目標です。", "question": "次の文を読んで、正しいものを選んでください。", "options": { "A": "最初から日本語がよくわかりました。", "B": "アニメを見ながら日本語を勉強しました。", "C": "今は字幕なしでアニメが完全にわかります。", "D": "日本語の勉強はやめました。" }, "answer": "B" },
+    { "id": 7, "category": "dokkai", "passage": "本日のおすすめ\n焼き魚定食　700円\n肉じゃが定食　750円\nカレーライス　600円\n※ごはんのおかわりは無料です。\n※定食には、みそ汁と小さいサラダがつきます。", "question": "次の店の貼り紙を読んで、正しいものを選んでください。", "options": { "A": "カレーライスにはみそ汁がつきます。", "B": "ごはんをもう一度頼むと、お金を払います。", "C": "焼き魚定食を頼むと、サラダがついてきます。", "D": "すべての料理にみそ汁がつきます。" }, "answer": "C" },
+    { "id": 8, "category": "dokkai", "passage": "私は先月、日本に来ました。日本に来る前に、1年間日本語を勉強しました。でも、日本人の話す日本語は速くて、まだよくわかりません。買い物をするときは、簡単な日本語で話すようにしています。もっと練習しなければならないと思っています。", "question": "次の文を読んで、正しいものを選んでください。", "options": { "A": "日本に来る前に、日本語を全然勉強しませんでした。", "B": "日本人の日本語はゆっくりで、よくわかります。", "C": "買い物のときは、簡単な日本語を使っています。", "D": "もう日本語の練習は必要ないと思っています。" }, "answer": "C" },
+    { "id": 9, "category": "dokkai", "passage": "山田さんへ\n明日の会議は、10時からではなく、11時からになりました。会議室は3階の会議室Bです。資料は5部持ってきてください。よろしくお願いします。\n鈴木", "question": "次のメモを読んで、正しいものを選んでください。", "options": { "A": "会議は10時に始まります。", "B": "会議室は3階のAです。", "C": "資料を5部持って行きます。", "D": "資料は持って行かなくてもいいです。" }, "answer": "C" },
+    { "id": 10, "category": "dokkai", "passage": "私は週末、たいてい家でゆっくりします。でも、天気がいい日は、公園を散歩します。散歩のときは、音楽を聞きながら歩きます。たまに、友だちと一緒に走ることもあります。運動したあとは、気分がとてもいいです。", "question": "次の文を読んで、正しいものを選んでください。", "options": { "A": "週末はいつも走ります。", "B": "天気が悪い日は、公園を散歩します。", "C": "散歩しながら音楽を聞くことがあります。", "D": "運動したあとは、いつも疲れて寝ます。" }, "answer": "C" },
+    { "id": 11, "category": "hyougen", "question": "A「すみません、この近くに銀行はありますか。」\nB「あそこに（　）よ。」", "options": { "A": "あります", "B": "あってです", "C": "あるです", "D": "ありました" }, "answer": "A" },
+    { "id": 12, "category": "hyougen", "question": "A「コーヒーと紅茶と、どちらがいいですか。」\nB「私はコーヒー（　）します。」", "options": { "A": "が", "B": "を", "C": "に", "D": "で" }, "answer": "C" },
+    { "id": 13, "category": "hyougen", "question": "A「この傘はあなたのですか。」\nB「いいえ、私の（　）。」", "options": { "A": "です", "B": "ではありません", "C": "くないです", "D": "じゃないでした" }, "answer": "B" },
+    { "id": 14, "category": "hyougen", "question": "A「日本語と英語と、どちらが難しいですか。」\nB「日本語（　）難しいです。」", "options": { "A": "ほど", "B": "より", "C": "のほうが", "D": "ぐらい" }, "answer": "C" },
+    { "id": 15, "category": "hyougen", "question": "A「週末、何をしましたか。」\nB「友だちと映画を（　）。」", "options": { "A": "見ます", "B": "見ました", "C": "見ません", "D": "見ましょう" }, "answer": "B" },
+    { "id": 16, "category": "hyougen", "question": "A「一緒に昼ごはんを食べませんか。」\nB「すみません、今から出かけ（　）。」", "options": { "A": "ます", "B": "ました", "C": "なければなりません", "D": "たいです" }, "answer": "C" },
+    { "id": 17, "category": "hyougen", "question": "A「この漢字の読み方を教えて（　）ませんか。」\nB「いいですよ。『じしょ』と読みます。」", "options": { "A": "もらい", "B": "くれ", "C": "あげ", "D": "ください" }, "answer": "A" },
+    { "id": 18, "category": "hyougen", "question": "A「窓を開けて（　）いいですか。」\nB「はい、どうぞ。」", "options": { "A": "ても", "B": "たら", "C": "ば", "D": "なら" }, "answer": "A" },
+    { "id": 19, "category": "hyougen", "question": "A「先生、明日のテストは何時からですか。」\nB「9時からです。遅れ（　）くださいね。」", "options": { "A": "ないで", "B": "なくて", "C": "ずに", "D": "ないと" }, "answer": "A" },
+    { "id": 20, "category": "hyougen", "question": "A「日本で何がしたいですか。」\nB「いろいろな所へ（　）たいです。」", "options": { "A": "行き", "B": "行く", "C": "行って", "D": "行った" }, "answer": "A" },
+    { "id": 21, "category": "hyougen", "question": "A「田中さんはもう帰りましたか。」\nB「いいえ、まだ（　）。」", "options": { "A": "帰ります", "B": "帰りました", "C": "帰っていません", "D": "帰らないです" }, "answer": "C" },
+    { "id": 22, "category": "hyougen", "question": "A「この料理は辛いですか。」\nB「少し辛いですが、とても（　）ですよ。」", "options": { "A": "おいしい", "B": "おいしく", "C": "おいしさ", "D": "おいしくて" }, "answer": "A" },
+    { "id": 23, "category": "hyougen", "question": "A「どうして遅れたんですか。」\nB「電車が（　）んです。」", "options": { "A": "遅れ", "B": "遅れた", "C": "遅れる", "D": "遅れて" }, "answer": "B" },
+    { "id": 24, "category": "hyougen", "question": "A「夏休みにどこか行きましたか。」\nB「いいえ、どこ（　）行きませんでした。」", "options": { "A": "でも", "B": "にも", "C": "へも", "D": "かも" }, "answer": "B" },
+    { "id": 25, "category": "hyougen", "question": "A「このボタンを押してもいいですか。」\nB「ええ、押し（　）いいですよ。」", "options": { "A": "ても", "B": "たら", "C": "ては", "D": "たが" }, "answer": "A" },
+    { "id": 26, "category": "hyougen", "question": "A「李さんは日本語が上手ですね。」\nB「いいえ、それ（　）ないです。」", "options": { "A": "ほど", "B": "しか", "C": "ごろ", "D": "くらい" }, "answer": "A" },
+    { "id": 27, "category": "hyougen", "question": "A「薬を飲んだほうがいいですよ。」\nB「はい、（　）と思います。」", "options": { "A": "飲みます", "B": "飲もう", "C": "飲んだ", "D": "飲んで" }, "answer": "B" },
+    { "id": 28, "category": "hyougen", "question": "A「この服、サイズが合いません。」\nB「じゃあ、大きいの（　）どうですか。」", "options": { "A": "が", "B": "は", "C": "に", "D": "を" }, "answer": "B" },
+    { "id": 29, "category": "hyougen", "question": "A「毎日日本語を勉強していますか。」\nB「はい。でも、忙しい日は（　）できないことがあります。」", "options": { "A": "なかなか", "B": "だんだん", "C": "そろそろ", "D": "ぜんぜん" }, "answer": "A" },
+    { "id": 30, "category": "hyougen", "question": "A「課長、この書類、いつまでに出せばいいですか。」\nB「金曜日（　）出してください。」", "options": { "A": "まで", "B": "までに", "C": "ぐらい", "D": "ごろ" }, "answer": "B" },
+    { "id": 31, "category": "hyougen", "question": "A「もしもし、田中さんのお宅ですか。」\nB「はい。田中ですが、（　）。」", "options": { "A": "どちらさまですか", "B": "どなたですか", "C": "だれですか", "D": "何ですか" }, "answer": "A" },
+    { "id": 32, "category": "hyougen", "question": "A「すみません、塩を取って（　）ませんか。」\nB「はい、どうぞ。」", "options": { "A": "もらい", "B": "いただき", "C": "くれ", "D": "ください" }, "answer": "C" },
+    { "id": 33, "category": "hyougen", "question": "A「日本に来て、どのぐらいになりますか。」\nB「3月に来たので、もうすぐ2か月（　）。」", "options": { "A": "です", "B": "になります", "C": "ました", "D": "でした" }, "answer": "B" },
+    { "id": 34, "category": "hyougen", "question": "A「風邪をひいたとき、何をしますか。」\nB「暖かくして、早く（　）ようにしています。」", "options": { "A": "寝る", "B": "寝た", "C": "寝て", "D": "寝ます" }, "answer": "A" },
+    { "id": 35, "category": "hyougen", "question": "A「この道をまっすぐ行くと、駅がありますか。」\nB「ええ。でも、この先は工事中ですから、（　）ください。」", "options": { "A": "通らないで", "B": "通らなくて", "C": "通らないと", "D": "通らず" }, "answer": "A" },
+    { "id": 36, "category": "hyougen", "question": "A「田中さん、山田さんを知っていますか。」\nB「ええ、（　）ことがあります。」", "options": { "A": "会う", "B": "会った", "C": "会って", "D": "会い" }, "answer": "B" },
+    { "id": 37, "category": "hyougen", "question": "A「明日のパーティー、何を持って行きましょうか。」\nB「飲み物は私が買いますから、何も（　）いいですよ。」", "options": { "A": "持ってこなくても", "B": "持ってこないで", "C": "持ってこないと", "D": "持ってこずに" }, "answer": "A" },
+    { "id": 38, "category": "hyougen", "question": "A「この本、面白かったですか。」\nB「ええ、とても（　）です。」", "options": { "A": "面白い", "B": "面白かった", "C": "面白く", "D": "面白さ" }, "answer": "B" },
+    { "id": 39, "category": "hyougen", "question": "A「すみません、トイレはどこですか。」\nB「2階に（　）よ。」", "options": { "A": "あります", "B": "います", "C": "なります", "D": "します" }, "answer": "A" },
+    { "id": 40, "category": "hyougen", "question": "A「課長、お先に失礼（　）。」\nB「お疲れさまでした。」", "options": { "A": "します", "B": "しました", "C": "いたします", "D": "なります" }, "answer": "C" },
+    { "id": 41, "category": "kotoba_kanji", "question": "最近、日本語の勉強が楽しくなりました。", "options": { "A": "べんきょ", "B": "べんきょう", "C": "べんきょお", "D": "べんきゅう" }, "answer": "B" },
+    { "id": 42, "category": "kotoba_kanji", "question": "駅の近くに安いスーパーがあります。", "options": { "A": "ちかく", "B": "きんく", "C": "ちかこ", "D": "きんこう" }, "answer": "A" },
+    { "id": 43, "category": "kotoba_kanji", "question": "この料理はとてもおいしいです。", "options": { "A": "りょり", "B": "りょうり", "C": "りより", "D": "ろうり" }, "answer": "B" },
+    { "id": 44, "category": "kotoba_kanji", "question": "毎朝、新聞を読みます。", "options": { "A": "しんふん", "B": "しんぶん", "C": "しぶん", "D": "しんぷん" }, "answer": "B" },
+    { "id": 45, "category": "kotoba_kanji", "question": "友だちと約束をしました。", "options": { "A": "やくそく", "B": "やくぞく", "C": "よやく", "D": "やくそ" }, "answer": "A" },
+    { "id": 46, "category": "kotoba_kanji", "question": "日本では交通が便利です。", "options": { "A": "こうつ", "B": "こうつう", "C": "こつう", "D": "こつ" }, "answer": "B" },
+    { "id": 47, "category": "kotoba_kanji", "question": "旅行の写真を見せてください。", "options": { "A": "りょこ", "B": "りょうこう", "C": "りょこう", "D": "りょうこ" }, "answer": "C" },
+    { "id": 48, "category": "kotoba_kanji", "question": "この建物は100年前に建てられました。", "options": { "A": "たてもの", "B": "けんぶつ", "C": "たてぶつ", "D": "けんもの" }, "answer": "A" },
+    { "id": 49, "category": "kotoba_kanji", "question": "毎日、運動しています。", "options": { "A": "うんとう", "B": "うんどう", "C": "うんと", "D": "うどう" }, "answer": "B" },
+    { "id": 50, "category": "kotoba_kanji", "question": "大切な経験になりました。", "options": { "A": "けいけん", "B": "けいげん", "C": "けんけん", "D": "けいこん" }, "answer": "A" },
+    { "id": 51, "category": "kotoba_kanji", "question": "明日は（　）が降るそうです。", "options": { "A": "雨", "B": "雪", "C": "風", "D": "天" }, "answer": "A" },
+    { "id": 52, "category": "kotoba_kanji", "question": "毎日、日本語を（　）しています。", "options": { "A": "勉", "B": "強", "C": "動", "D": "練" }, "answer": "B" },
+    { "id": 53, "category": "kotoba_kanji", "question": "この（　）は静かで住みやすいです。", "options": { "A": "町", "B": "村", "C": "道", "D": "家" }, "answer": "A" },
+    { "id": 54, "category": "kotoba_kanji", "question": "来週、（　）に行ってきます。", "options": { "A": "旅行", "B": "出張", "C": "散歩", "D": "買い物" }, "answer": "B" },
+    { "id": 55, "category": "kotoba_kanji", "question": "体に（　）ために、毎日野菜を食べています。", "options": { "A": "い", "B": "いい", "C": "よい", "D": "善い" }, "answer": "C" },
+    { "id": 56, "category": "kotoba_kanji", "question": "友だちに（　）を送りました。", "options": { "A": "手紙", "B": "電話", "C": "メール", "D": "葉書" }, "answer": "C" },
+    { "id": 57, "category": "kotoba_kanji", "question": "この店は（　）が安いです。", "options": { "A": "値段", "B": "物", "C": "金", "D": "代" }, "answer": "A" },
+    { "id": 58, "category": "kotoba_kanji", "question": "毎朝、歯を（　）から、顔を洗います。", "options": { "A": "みがいて", "B": "あらって", "C": "ふいて", "D": "こすって" }, "answer": "A" },
+    { "id": 59, "category": "kotoba_kanji", "question": "日本語の（　）を覚えるのは大変です。", "options": { "A": "単語", "B": "言葉", "C": "文", "D": "字" }, "answer": "A" },
+    { "id": 60, "category": "kotoba_kanji", "question": "会議の（　）を確認してください。", "options": { "A": "時間", "B": "時計", "C": "時刻", "D": "時期" }, "answer": "A" }
+  ]
+];
+
+// ============================================================
+// ====== NORMALISASI SOAL ======
+// Mengubah semua format ke format internal: { q, passage, o:[...], a:index, t? }
+// ============================================================
+const LETTERS = ['A','B','C','D'];
+
+function normalizeOne(raw) {
+  // Kalau sudah format internal (q + o array), biarkan
+  if (raw.q !== undefined && Array.isArray(raw.o)) {
+    return {
+      id: raw.id, category: raw.category,
+      passage: raw.passage || '',
+      q: raw.q, o: raw.o.slice(), a: raw.a,
+      t: raw.t
+    };
+  }
+  // Format baru: question / options{A,B,C,D} / answer
+  const opts = LETTERS.map(k => (raw.options && raw.options[k] != null) ? raw.options[k] : '');
+  let ansIdx = LETTERS.indexOf(raw.answer);
+  if (ansIdx < 0 && raw.options) {
+    // fallback: answer mungkin berisi teks jawaban
+    ansIdx = opts.indexOf(raw.answer);
+  }
+  if (ansIdx < 0) ansIdx = 0;
+  return {
+    id: raw.id,
+    category: raw.category,
+    passage: raw.passage || '',
+    q: raw.question || '',
+    o: opts,
+    a: ansIdx,
+    t: raw.t
+  };
+}
+
+function normalizeAll(arr) {
+  // Flatten semua level nested array
+  let flat = arr;
+  while (flat.length > 0 && Array.isArray(flat[0])) flat = flat.flat();
+  return flat.map(normalizeOne);
+}
+
+const QUESTIONS = normalizeAll(QUESTIONS_RAW);
+
+// ============================================================
+// ====== LOGIKA QUIZ ======
+// ============================================================
+const LABELS = LETTERS;
+let current = 0, score = 0, answered = false;
+let order = [], userAnswers = [], examMode = false;
+let timerInterval = null, timeLeft = 0;
+
+// ---------- HITUNG WAKTU SOAL (ADAPTIF) ----------
+function getQuestionTime(q) {
+  if (q.t && q.t > 0) return Math.max(CONFIG.minTimePerQuestion, q.t);
+  if (CONFIG.timePerQuestion > 0) return CONFIG.timePerQuestion;
+
+  const pLen = (q.passage || '').length;
+  const qLen = (q.q || '').length;
+  const oLen = (q.o || []).reduce((s, o) => s + (o || '').length, 0);
+
+  // Passage: ~1 detik per 6 karakter (baca + pahami)
+  // Soal + opsi: ~1 detik per 25 karakter
+  const readTime = Math.ceil(pLen / 6);
+  const answerTime = Math.ceil((qLen + oLen) / 25);
+
+  const total = CONFIG.minTimePerQuestion + readTime + answerTime;
+  return Math.min(total, CONFIG.maxTimePerQuestion);
+}
+
+// ---------- SOUND ----------
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { audioCtx = null; }
+  }
+}
+function playTone(freq, duration, type='sine', vol=0.15) {
+  if (!CONFIG.soundEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + duration);
+}
+function soundCorrect() { initAudio(); playTone(660,0.12,'sine'); setTimeout(()=>playTone(880,0.18,'sine'),110); }
+function soundWrong()   { initAudio(); playTone(220,0.25,'sawtooth',0.12); }
+function soundTick()    { if (!CONFIG.soundEnabled || !audioCtx) return; playTone(1000,0.05,'square',0.05); }
+
+// ---------- SHUFFLE ----------
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ---------- SCREEN SWITCH ----------
+function showScreen(id) {
+  ['menu-screen','quiz-screen','result-screen','lb-screen'].forEach(s => {
+    document.getElementById(s).classList.add('hidden');
+    document.getElementById(s).classList.remove('show');
+  });
+  document.getElementById(id).classList.remove('hidden');
+  if (id === 'result-screen') document.getElementById(id).classList.add('show');
+}
+
+// ---------- START QUIZ ----------
+function startQuiz(isExam) {
+  if (QUESTIONS.length === 0) {
+    alert('Belum ada soal. Silakan isi array QUESTIONS_RAW terlebih dahulu.');
+    return;
+  }
+  initAudio();
+  examMode = isExam;
+  current = 0; score = 0; answered = false;
+  userAnswers = [];
+  order = CONFIG.shuffleQuestions
+    ? shuffle(QUESTIONS.map((_, i) => i))
+    : QUESTIONS.map((_, i) => i);
+  showScreen('quiz-screen');
+  renderQuestion();
+}
+
+// ---------- RENDER QUESTION ----------
+function renderQuestion() {
+  answered = false;
+  const qIdx = order[current];
+  let q = QUESTIONS[qIdx];
+  let options = q.o.slice();
+  let correct = q.a;
+
+  if (CONFIG.shuffleOptions) {
+    const pairs = options.map((opt, i) => ({ opt, isCorrect: i === correct }));
+    const shuffled = shuffle(pairs);
+    options = shuffled.map(p => p.opt);
+    correct = shuffled.findIndex(p => p.isCorrect);
+  }
+
+  // Snapshot lengkap untuk review
+  q = { ...q, o: options, a: correct };
+
+  // Passage
+  const passageEl = document.getElementById('passage-text');
+  if (q.passage && q.passage.trim()) {
+    passageEl.textContent = q.passage;
+    passageEl.style.display = 'block';
+  } else {
+    passageEl.textContent = '';
+    passageEl.style.display = 'none';
+  }
+
+  document.getElementById('question-text').textContent = q.q;
+  document.getElementById('progress-text').textContent = `Soal ${current + 1} / ${order.length}`;
+  document.getElementById('score-text').textContent = `Skor: ${score}`;
+  document.getElementById('progress-fill').style.width = `${(current / order.length) * 100}%`;
+
+  const container = document.getElementById('options-container');
+  container.innerHTML = '';
+  q.o.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = `<span class="label">${LABELS[i]}.</span> <span>${opt}</span>`;
+    btn.onclick = () => selectAnswer(i, q);
+    container.appendChild(btn);
+  });
+
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback';
+  fb.textContent = '';
+  document.getElementById('next-btn').disabled = true;
+  document.getElementById('next-btn').textContent = current === order.length - 1 ? 'Lihat Hasil →' : 'Lanjut →';
+
+  startTimer(q);
+}
+
+// ---------- TIMER ----------
+function startTimer(q) {
+  clearInterval(timerInterval);
+  const timerEl = document.getElementById('timer-display');
+  const total = getQuestionTime(q);
+  if (total <= 0) { timerEl.style.display = 'none'; return; }
+  timerEl.style.display = 'inline-block';
+  timeLeft = total;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 5 && timeLeft > 0) soundTick();
+    if (timeLeft <= 0) { clearInterval(timerInterval); timeOut(); }
+  }, 1000);
+}
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-display');
+  el.textContent = `⏱️ ${timeLeft}s`;
+  el.classList.toggle('warning', timeLeft <= 5);
+}
+function timeOut() {
+  if (answered) return;
+  answered = true;
+  const qIdx = order[current];
+  const q = QUESTIONS[qIdx];
+  userAnswers.push({ qIdx, selected: -1, correct: q.a, isCorrect: false, timedOut: true, snapshot: q });
+  document.querySelectorAll('.option').forEach((el, i) => {
+    el.classList.add('disabled');
+    if (i === q.a) el.classList.add('correct');
+  });
+  if (!examMode) {
+    soundWrong();
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback show wrong';
+    fb.textContent = `⏰ Waktu habis! Jawaban benar: ${LABELS[q.a]}. ${q.o[q.a]}`;
+  }
+  document.getElementById('next-btn').disabled = false;
+  document.getElementById('score-text').textContent = `Skor: ${score}`;
+}
+
+// ---------- SELECT ANSWER ----------
+function selectAnswer(selected, q) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
+
+  const qIdx = order[current];
+  const correct = q.a;
+  const options = document.querySelectorAll('.option');
+
+  if (examMode) {
+    options.forEach((el, i) => {
+      el.classList.add('disabled');
+      if (i === selected) el.classList.add('selected');
+    });
+    if (selected === correct) score++;
+    userAnswers.push({ qIdx, selected, correct, isCorrect: selected === correct, snapshot: q });
+  } else {
+    options.forEach((el, i) => {
+      el.classList.add('disabled');
+      if (i === correct) el.classList.add('correct');
+      if (i === selected && i !== correct) el.classList.add('wrong');
+    });
+    const isCorrect = selected === correct;
+    if (isCorrect) { score++; soundCorrect(); }
+    else soundWrong();
+    userAnswers.push({ qIdx, selected, correct, isCorrect, snapshot: q });
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+    fb.textContent = isCorrect
+      ? '✅ Benar!'
+      : `❌ Salah. Jawaban benar: ${LABELS[correct]}. ${q.o[correct]}`;
+  }
+
+  document.getElementById('score-text').textContent = `Skor: ${score}`;
+  document.getElementById('next-btn').disabled = false;
+}
+
+// ---------- NEXT ----------
+document.getElementById('next-btn').onclick = () => {
+  current++;
+  if (current >= order.length) showResult();
+  else renderQuestion();
+};
+
+// ---------- RESULT ----------
+function showResult() {
+  clearInterval(timerInterval);
+  showScreen('result-screen');
+  const pct = Math.round((score / order.length) * 100);
+  document.getElementById('final-score').textContent = `${score} / ${order.length}`;
+  let msg = '';
+  if (pct >= 90) msg = '🌟 Luar biasa! Hyougen kamu sangat bagus!';
+  else if (pct >= 70) msg = '👍 Bagus! Sedikit lagi sempurna.';
+  else if (pct >= 50) msg = '💪 Cukup baik. Terus berlatih!';
+  else msg = '📚 Jangan menyerah. Ulangi dan pelajari lagi!';
+  document.getElementById('final-detail').innerHTML =
+    `${pct}% benar<br>${msg}<br><small style="color:#999;">Mode: ${examMode ? 'Ujian' : 'Latihan'}</small>`;
+
+  const list = document.getElementById('review-list');
+  list.innerHTML = '<h3 style="margin-bottom:10px;color:#333;">Review Jawaban:</h3>';
+  userAnswers.forEach((ua, i) => {
+    const q = ua.snapshot || QUESTIONS[ua.qIdx];
+    const div = document.createElement('div');
+    div.className = 'review-item ' + (ua.isCorrect ? 'correct' : 'wrong');
+    const yourAns = ua.selected === -1
+      ? '<span class="no">(tidak dijawab / waktu habis)</span>'
+      : `<span class="${ua.isCorrect ? 'ok' : 'no'}">${LABELS[ua.selected]}. ${q.o[ua.selected]}</span>`;
+    const passageHtml = (q.passage && q.passage.trim())
+      ? `<div class="review-passage">${q.passage}</div>` : '';
+    div.innerHTML = `
+      ${passageHtml}
+      <div class="review-q">${i + 1}. ${q.q}</div>
+      <div class="review-a">
+        Jawabanmu: ${yourAns}
+        ${!ua.isCorrect ? ` | Benar: <span class="ok">${LABELS[ua.correct]}. ${q.o[ua.correct]}</span>` : ''}
+      </div>`;
+    list.appendChild(div);
+  });
+
+  saveToLeaderboard(score, order.length);
+}
+
+// ---------- LEADERBOARD ----------
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(CONFIG.leaderboardKey)) || []; }
+  catch(e) { return []; }
+}
+function saveToLeaderboard(sc, total) {
+  const entry = {
+    score: sc, total: total,
+    pct: Math.round((sc / total) * 100),
+    mode: examMode ? 'Ujian' : 'Latihan',
+    date: new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
+  };
+  const lb = getLeaderboard();
+  lb.push(entry);
+  lb.sort((a, b) => b.pct - a.pct || b.score - a.score);
+  localStorage.setItem(CONFIG.leaderboardKey, JSON.stringify(lb.slice(0, CONFIG.maxLeaderboard)));
+}
+function renderLeaderboard() {
+  const lb = getLeaderboard();
+  const content = document.getElementById('lb-content');
+  if (lb.length === 0) {
+    content.innerHTML = '<p class="lb-empty">Belum ada skor tersimpan.<br>Selesaikan quiz dulu untuk masuk leaderboard!</p>';
+    return;
+  }
+  let html = '<table class="lb-table"><thead><tr><th>#</th><th>Skor</th><th>%</th><th>Mode</th><th>Tanggal</th></tr></thead><tbody>';
+  lb.forEach((e, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    html += `<tr><td>${medal}</td><td>${e.score}/${e.total}</td><td>${e.pct}%</td><td>${e.mode}</td><td>${e.date}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  content.innerHTML = html;
+}
+
+// ---------- EVENT LISTENERS ----------
+document.getElementById('start-normal-btn').onclick = () => startQuiz(false);
+document.getElementById('start-exam-btn').onclick = () => startQuiz(true);
+document.getElementById('restart-btn').onclick = () => startQuiz(examMode);
+document.getElementById('back-menu-btn').onclick = () => showScreen('menu-screen');
+document.getElementById('show-lb-btn').onclick = () => { renderLeaderboard(); showScreen('lb-screen'); };
+document.getElementById('lb-back-btn').onclick = () => showScreen('menu-screen');
+document.getElementById('clear-lb-btn').onclick = () => {
+  if (confirm('Hapus semua skor di leaderboard?')) {
+    localStorage.removeItem(CONFIG.leaderboardKey);
+    renderLeaderboard();
+  }
+};
+
+// ---------- UPDATE UI DINAMIS ----------
+function updateMenuInfo() {
+  const n = QUESTIONS.length;
+  document.getElementById('menu-subtitle').textContent = `${n} Soal Pilihan Ganda • Referensi IRODORI`;
+  document.getElementById('timer-badge').textContent = `⏱️ Min ${CONFIG.minTimePerQuestion}s (adaptif)`;
+}
+updateMenuInfo();
+showScreen('menu-screen');
+</script>
+</body>
+</html>
